@@ -17,10 +17,10 @@ I chose <file_name>.b as the convention to name a 2BASIC file.
 * comments declared with `//` are single-line always and are ignored in the language.
 
 ### Keywords:
-`IF`, `THEN`, `ELSE`, `REPEAT`, `UNTIL`, `GOSUB`, `SUB`, `RETURN`, `PRINT`
+`IF`, `THEN`, `ELSE`, `REPEAT`, `UNTIL`, `GOSUB`, `SUB`, `RETURN`, `PRINT`, `TRUE`, `FALSE`
 
 ### Symbols:
-`integer`, `string`, `identifier`, `(`, `)`, `+`, `-`, `*`, `/`, `%`, `^`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`
+`integer`, `string`, `identifier`, `(`, `)`, `+`, `-`, `*`, `/`, `%`, `^`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=` , `AND`, `OR`, `NOT`
 
 with:
 
@@ -47,7 +47,7 @@ basic       = { variable | block }.
 
 variable = "LET" identifier "=" (arithmetic)
     
-expression  = arithmetic [ ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) arithmetic ].
+expression  = arithmetic [ ( "==" | "!=" | "<" | ">" | "<=" | ">=" | "AND" | "OR" | "NOT" ) arithmetic ].
 
 arithmetic  = term { ( "+" |" -" ) term }.
 

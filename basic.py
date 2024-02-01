@@ -6,17 +6,23 @@ SYM_DIV = '/'
 SYM_POWER = '^'
 SYM_REMAINDER = '%'
 SYM_EQUAL = '='
+SYM_RPARENTHESIS = '('
+SYM_LPARENTHESIS = ')'
+SYM_DEQUAL = '=='
+SYM_NEQUAL = '!='
+SYM_LTE = "<="
+SYM_GTE = ">="
+SYM_SLT = "<"
+SYM_SGT = ">"
 SYM_KEYWORD = 'KEYWORD'
 SYM_IDENTIFIER = 'IDENTIFIER'
 SYM_INT = 'INT'
 SYM_FLOAT = 'FLOAT'
-SYM_RPARENTHESIS = '('
-SYM_LPARENTHESIS = ')'
 SYM_EOF = 'EOF'
 # #####CONSTANTS#####
 DIGITS = '0123456789'
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-KEYWORDS = ['LET', 'IF', 'THEN', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT']
+KEYWORDS = ['LET', 'IF', 'THEN', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR', 'NOT']
 
 
 # #####CLASSES#####
@@ -137,6 +143,24 @@ class Scanner:
                 self.advance()
             elif self.current_character == '=':
                 symbols.append(Symbol(SYM_EQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '==':
+                symbols.append(Symbol(SYM_DEQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '!=':
+                symbols.append(Symbol(SYM_NEQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '<=':
+                symbols.append(Symbol(SYM_LTE, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '>=':
+                symbols.append(Symbol(SYM_GTE, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '<':
+                symbols.append(Symbol(SYM_SLT, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '>':
+                symbols.append(Symbol(SYM_SGT, pos_start=self.pointer.copy()))
                 self.advance()
             elif self.current_character in DIGITS:
                 types, value, error, pos_start, pos_end = self.make_number()
@@ -316,8 +340,8 @@ class Parser:
         else:
             right = res.register(self.arithmetic())
             if res.error is not None:
-                return res.failure(InvalidSyntaxError("Expected 'LET', int, float, identifier, '+', '-', or '('"
-                                                      , self.current_tok.pos_start, self.current_tok.pos_end))
+                return res.failure(InvalidSyntaxError("Expected 'LET', int, float, identifier, '+', '-', or '('",
+                                                      self.current_tok.pos_start, self.current_tok.pos_end))
             else:
                 return res.success(right)
 
@@ -367,6 +391,8 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(self.arithmetic())
+            if res.error is not None:
+                return res
             right = UnOpNode(op_tok, right)
             return res.success(right)
         elif tok.types == SYM_LPARENTHESIS:
@@ -394,9 +420,10 @@ class ParseResult:
     def __init__(self):
         self.error = None
         self.node = None
+        self.advancement_count = 0
 
     def register_advancement(self):
-        pass
+        self.advancement_count += 1
 
     def register(self, res):
         if res.error is not None:
@@ -408,7 +435,8 @@ class ParseResult:
         return self
 
     def failure(self, error):
-        self.error = error
+        if self.error is None or self.advancement_count == 0:
+            self.error = error
         return self
 
 
