@@ -47,11 +47,11 @@ compaaison_op =  "==" | "!=" | "<" | ">" | "<=" | ">=" .
 ````
 basic       = { variable | block }.
 
-variable = "LET" identifier "=" (upper_expression)
+variable = "LET" identifier "=" (upper_expression).
 
-upper_expression = (expression) [ ("AND" | "OR" | "NOT") (expression) ]
+logical_expression = ["NOT"] ( (comp_expression) [ ("AND" | "OR" ) (logical_expression) ] ).
     
-expression  = (arithmetic) [ comparaison_op (arithmetic) ].
+comp_expression  = (arithmetic) [ comparaison_op (arithmetic) ].
 
 arithmetic  = term { ( "+" |" -" ) term }.
 

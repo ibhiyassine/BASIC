@@ -246,8 +246,6 @@ class Scanner:
         return tok, None
 
 
-
-
 ###################################################
 # POSITION
 ###################################################
@@ -325,12 +323,6 @@ class VarAccessNode:
         self.pos_end = self.var_name_tok.pos_end
 
 
-class LogicalOpNode:
-    pass
-
-class 
-
-
 ###################################################
 # PARSER
 ###################################################
@@ -383,12 +375,55 @@ class Parser:
                     else:
                         return res.success(VarAssignNode(var_name, right))
         else:
-            right = res.register(self.arithmetic())
+            right = res.register(self.logical_expression())
             if res.error is not None:
                 return res.failure(InvalidSyntaxError("Expected 'LET', int, float, identifier, '+', '-', or '('"
                                                       , self.current_tok.pos_start, self.current_tok.pos_end))
             else:
                 return res.success(right)
+
+    def logical_expression(self):
+        res = ParseResult()
+        if self.current_tok.matches(SYM_KEYWORD, 'NOT'):
+            op_tok = self.current_tok
+            res.register_advancement()
+            self.advance()
+            right = res.register(self.logical_expression())
+            if res.error is not None:
+                return res
+            else:
+                return res.success(UnOpNode(op_tok, right))
+        else:
+            left = res.register(self.comp_expression())
+            if res.error is not None:
+                return res
+            if self.current_tok.matches(SYM_KEYWORD, 'AND') or self.current_tok.matches(SYM_KEYWORD, 'OR'):
+                op_tok = self.current_tok
+                res.register_advancement()
+                self.advance()
+                right = res.register(self.logical_expression())
+                if res.error is not None:
+                    return res
+                else:
+                    return res.success(BinOpNode(left, op_tok, right))
+            return res.success(left)
+
+    def comp_expression(self):
+        res = ParseResult()
+        left = res.register(self.arithmetic())
+        if res.error is not None:
+            return res
+        if self.current_tok.types in (SYM_DE, SYM_NE, SYM_SLT, SYM_SGT, SYM_GTE, SYM_LTE):
+            op_tok = self.current_tok
+            res.register_advancement()
+            self.advance()
+            right = res.register(self.arithmetic())
+            if res.error is not None:
+                return res
+            else:
+                return res.success(BinOpNode(left, op_tok, right))
+        else:
+            return res.success(left)
 
     def arithmetic(self):
         res = ParseResult()
@@ -676,14 +711,18 @@ def run(text, fn):
     symbols, error = scanner.make_token()
     if error is not None:
         return None, error
+    # else:
+    #     return symbols, None
     # GENERATE SYNTAX TREE
     parser = Parser(symbols)
     ast = parser.parse()
     if ast.error is not None:
         return None, ast.error
+    else:
+        return ast.node, None
     # CREATE AN INTERPRETER INSTANCE
-    interpreter = Interpreter()
-    context = Context('<program>')
-    context.symbol_table = global_symbol_table
-    visit = interpreter.visit(ast.node, context)
-    return visit.value, visit.error
+    # interpreter = Interpreter()
+    # context = Context('<program>')
+    # context.symbol_table = global_symbol_table
+    # visit = interpreter.visit(ast.node, context)
+    # return visit.value, visit.error
