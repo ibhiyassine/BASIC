@@ -38,6 +38,8 @@ and:
 digit  = "0" | ... | "9" .
 
 letter = "a" | ... | "z" | "A" | ... | "Z" .
+
+compaaison_op =  "==" | "!=" | "<" | ">" | "<=" | ">=" .
 ````
 
 ### Grammar:
@@ -45,9 +47,11 @@ letter = "a" | ... | "z" | "A" | ... | "Z" .
 ````
 basic       = { variable | block }.
 
-variable = "LET" identifier "=" (arithmetic)
+variable = "LET" identifier "=" (upper_expression)
+
+upper_expression = (expression) [ ("AND" | "OR" | "NOT") (expression) ]
     
-expression  = arithmetic [ ( "==" | "!=" | "<" | ">" | "<=" | ">=" ) arithmetic ].
+expression  = (arithmetic) [ comparaison_op (arithmetic) ].
 
 arithmetic  = term { ( "+" |" -" ) term }.
 

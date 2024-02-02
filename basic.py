@@ -6,17 +6,23 @@ SYM_DIV = '/'
 SYM_POWER = '^'
 SYM_REMAINDER = '%'
 SYM_EQUAL = '='
+SYM_RPARENTHESIS = '('
+SYM_LPARENTHESIS = ')'
+SYM_DE = '=='
+SYM_NE = '!='
+SYM_GTE = '>='
+SYM_LTE = '<='
+SYM_SGT = '>'
+SYM_SLT = '<'
 SYM_KEYWORD = 'KEYWORD'
 SYM_IDENTIFIER = 'IDENTIFIER'
 SYM_INT = 'INT'
 SYM_FLOAT = 'FLOAT'
-SYM_RPARENTHESIS = '('
-SYM_LPARENTHESIS = ')'
 SYM_EOF = 'EOF'
 # #####CONSTANTS#####
 DIGITS = '0123456789'
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-KEYWORDS = ['LET', 'IF', 'THEN', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT']
+KEYWORDS = ['LET', 'IF', 'THEN', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR', 'NOT']
 
 
 # #####CLASSES#####
@@ -136,8 +142,23 @@ class Scanner:
                 symbols.append(Symbol(SYM_REMAINDER, pos_start=self.pointer.copy()))
                 self.advance()
             elif self.current_character == '=':
-                symbols.append(Symbol(SYM_EQUAL, pos_start=self.pointer.copy()))
-                self.advance()
+                tok, error = self.make_equals()
+                if error is not None:
+                    return [], error
+                else:
+                    symbols.append(tok)
+            elif self.current_character == '!':
+                tok, error = self.make_not_equals()
+                if error is not None:
+                    return [], error
+                else:
+                    symbols.append(tok)
+            elif self.current_character == '<' or self.current_character == '>':
+                tok, error = self.make_order()
+                if error is not None:
+                    return [], error
+                else:
+                    symbols.append(tok)
             elif self.current_character in DIGITS:
                 types, value, error, pos_start, pos_end = self.make_number()
                 if error is None:
@@ -183,6 +204,48 @@ class Scanner:
             return SYM_KEYWORD, id_str, None, pos_start, self.pointer.copy()
         else:
             return SYM_IDENTIFIER, id_str, None, pos_start, self.pointer.copy()
+
+    def make_not_equals(self):
+        pos_start = self.pointer.copy()
+        self.advance()
+        pos_end = self.pointer.copy()
+        if self.current_character == '=':
+            self.advance()
+            tok = Symbol(SYM_NE, pos_start=pos_start, pos_end=pos_end)
+            return tok, None
+        else:
+            self.advance()
+            error = InvalidSyntaxError(f"Expected '=' but found {self.current_character}", pos_start, pos_end)
+            return None, error
+
+    def make_equals(self):
+        pos_start = self.pointer.copy()
+        self.advance()
+        pos_end = self.pointer.copy()
+        tok = Symbol(SYM_EQUAL, pos_start=pos_start, pos_end=pos_end)
+        if self.current_character == '=':
+            self.advance()
+            tok = Symbol(SYM_DE, pos_start=pos_start, pos_end=self.pointer)
+        return tok, None
+
+    def make_order(self):
+        tok = Symbol(None)
+        pos_start = self.pointer.copy()
+        if self.current_character == '<':
+            self.advance()
+            tok = Symbol(SYM_SLT, pos_start=pos_start, pos_end=self.pointer)
+            if self.current_character == '=':
+                self.advance()
+                tok = Symbol(SYM_LTE, pos_start=pos_start, pos_end=self.pointer)
+        elif self.current_character == '>':
+            self.advance()
+            tok = Symbol(SYM_SGT, pos_start=pos_start, pos_end=self.pointer)
+            if self.current_character == '=':
+                self.advance()
+                tok = Symbol(SYM_GTE, pos_start=pos_start, pos_end=self.pointer)
+        return tok, None
+
+
 
 
 ###################################################
@@ -260,6 +323,12 @@ class VarAccessNode:
         self.var_name_tok = var_name_tok
         self.pos_start = self.var_name_tok.pos_start
         self.pos_end = self.var_name_tok.pos_end
+
+
+class LogicalOpNode:
+    pass
+
+class 
 
 
 ###################################################
