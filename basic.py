@@ -14,6 +14,8 @@ SYM_GTE = '>='
 SYM_LTE = '<='
 SYM_SGT = '>'
 SYM_SLT = '<'
+SYM_DEQUAL = '=='
+SYM_NEQUAL = '!='
 SYM_KEYWORD = 'KEYWORD'
 SYM_IDENTIFIER = 'IDENTIFIER'
 SYM_INT = 'INT'
@@ -160,6 +162,26 @@ class Scanner:
                     return [], error
                 else:
                     symbols.append(tok)
+                symbols.append(Symbol(SYM_EQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '==':
+                symbols.append(Symbol(SYM_DEQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '!=':
+                symbols.append(Symbol(SYM_NEQUAL, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '<=':
+                symbols.append(Symbol(SYM_LTE, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '>=':
+                symbols.append(Symbol(SYM_GTE, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '<':
+                symbols.append(Symbol(SYM_SLT, pos_start=self.pointer.copy()))
+                self.advance()
+            elif self.current_character == '>':
+                symbols.append(Symbol(SYM_SGT, pos_start=self.pointer.copy()))
+                self.advance()
             elif self.current_character in DIGITS:
                 types, value, error, pos_start, pos_end = self.make_number()
                 if error is None:
@@ -389,8 +411,8 @@ class Parser:
         else:
             right = res.register(self.logical_expression())
             if res.error is not None:
-                return res.failure(InvalidSyntaxError("Expected 'LET', int, float, identifier, '+', '-', or '('"
-                                                      , self.current_tok.pos_start, self.current_tok.pos_end))
+                return res.failure(InvalidSyntaxError("Expected 'LET', int, float, identifier, '+', '-', or '('",
+                                                      self.current_tok.pos_start, self.current_tok.pos_end))
             else:
                 return res.success(right)
 
@@ -483,6 +505,8 @@ class Parser:
             res.register_advancement()
             self.advance()
             right = res.register(self.arithmetic())
+            if res.error is not None:
+                return res
             right = UnOpNode(op_tok, right)
             return res.success(right)
         elif tok.types == SYM_LPARENTHESIS:
@@ -559,9 +583,10 @@ class ParseResult:
     def __init__(self):
         self.error = None
         self.node = None
+        self.advancement_count = 0
 
     def register_advancement(self):
-        pass
+        self.advancement_count += 1
 
     def register(self, res):
         if res.error is not None:
@@ -573,7 +598,8 @@ class ParseResult:
         return self
 
     def failure(self, error):
-        self.error = error
+        if self.error is None or self.advancement_count == 0:
+            self.error = error
         return self
 
 
