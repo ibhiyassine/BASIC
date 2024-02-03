@@ -563,6 +563,57 @@ class Number:
         if isinstance(other, Number):
             return Number(self.value % other.value).set_context(self.context), None
 
+    def equal_to(self, other):
+        if isinstance(other, Number):
+            if self.value == other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def not_equal_to(self, other):
+        if isinstance(other, Number):
+            if self.value != other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def less_than(self, other):
+        if isinstance(other, Number):
+            if self.value < other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def greater_than(self, other):
+        if isinstance(other, Number):
+            if self.value > other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def less_than_equal_to(self, other):
+        if isinstance(other, Number):
+            if self.value <= other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def greater_than_equal_to(self, other):
+        if isinstance(other, Number):
+            if self.value >= other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def and_to(self, other):
+        if isinstance(other, Number):
+            if self.value and other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def or_to(self, other):
+        if isinstance(other, Number):
+            if self.value or other.value:
+                return Number(1).set_context(self.context), None
+            return Number(0).set_context(self.context), None
+
+    def inverse(self):
+        return Number(int(not self.value)).set_context(self.context), None
+
     def __repr__(self):
         return f'{self.value}'
 
@@ -661,6 +712,22 @@ class Interpreter:
             result, error = left.pow_to(right)
         elif node.op_tok.types == SYM_REMAINDER:
             result, error = left.rem_to(right)
+        elif node.op_tok.types == SYM_DE:
+            result, error = left.equal_to(right)
+        elif node.op_tok.types == SYM_NE:
+            result, error = left.not_equal_to(right)
+        elif node.op_tok.types == SYM_LTE:
+            result, error = left.less_than_equal_to(right)
+        elif node.op_tok.types == SYM_GTE:
+            result, error = left.greater_than_equal_to(right)
+        elif node.op_tok.types == SYM_SLT:
+            result, error = left.less_than(right)
+        elif node.op_tok.types == SYM_SGT:
+            result, error = left.greater_than(right)
+        elif node.op_tok.matches(SYM_KEYWORD, 'AND'):
+            result, error = left.and_to(right)
+        elif node.op_tok.matches(SYM_KEYWORD, 'OR'):
+            result, error = left.or_to(right)
         if error is not None:
             return res.failure(error)
         else:
@@ -672,6 +739,8 @@ class Interpreter:
         number = res.register(self.visit(node.right_node, context))
         if node.op_tok.types == SYM_MINUS:
             number, error = number.multed_to(Number(-1)), None
+        elif node.op_tok.matches(SYM_KEYWORD, 'NOT'):
+            number, error = number.inverse()
         if error is not None:
             return res.failure(error)
         else:
@@ -702,7 +771,9 @@ class Interpreter:
 # RUN
 ###################################################
 global_symbol_table = SymbolTable()
-global_symbol_table.set("null", Number(0))
+global_symbol_table.set("NULL", Number(0))
+global_symbol_table.set("TRUE", Number(1))
+global_symbol_table.set("FALSE", Number(0))
 
 
 def run(text, fn):
@@ -718,11 +789,11 @@ def run(text, fn):
     ast = parser.parse()
     if ast.error is not None:
         return None, ast.error
-    else:
-        return ast.node, None
+    # else:
+    #     return ast.node, None
     # CREATE AN INTERPRETER INSTANCE
-    # interpreter = Interpreter()
-    # context = Context('<program>')
-    # context.symbol_table = global_symbol_table
-    # visit = interpreter.visit(ast.node, context)
-    # return visit.value, visit.error
+    interpreter = Interpreter()
+    context = Context('<program>')
+    context.symbol_table = global_symbol_table
+    visit = interpreter.visit(ast.node, context)
+    return visit.value, visit.error

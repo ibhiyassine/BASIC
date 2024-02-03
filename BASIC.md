@@ -49,7 +49,7 @@ basic       = { variable | block }.
 
 variable = "LET" identifier "=" (upper_expression).
 
-logical_expression = ["NOT"] ( (comp_expression) [ ("AND" | "OR" ) (logical_expression) ] ).
+logical_expression = ["NOT"] ( (comp_expression) [ ("AND" | "OR" ) ( logical_expression) ] ).
     
 comp_expression  = (arithmetic) [ comparaison_op (arithmetic) ].
 
