@@ -22,7 +22,8 @@ SYM_EOF = 'EOF'
 # #####CONSTANTS#####
 DIGITS = '0123456789'
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-KEYWORDS = ['LET', 'IF', 'THEN', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR', 'NOT']
+KEYWORDS = ['LET', 'IF', 'THEN', 'ELIF', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR',
+            'NOT']
 
 
 # #####CLASSES#####
@@ -323,6 +324,17 @@ class VarAccessNode:
         self.pos_end = self.var_name_tok.pos_end
 
 
+class IfNode:
+    def __init__(self, cases, else_case=None):
+        self.cases = cases
+        self.else_case = else_case
+        self.pos_start = cases[0][0].pos_start
+        self.pos_end = (self.else_case or self.cases[-1][0]).pos_end
+
+    def __repr__(self):
+        pass
+
+
 ###################################################
 # PARSER
 ###################################################
@@ -487,7 +499,56 @@ class Parser:
                 return res.failure(
                     InvalidSyntaxError(pos_start=self.current_tok.pos_start, pos_end=self.current_tok.pos_end,
                                        detail="Expected ')'"))
+        elif tok.matches(SYM_KEYWORD, 'IF'):
+            if_expr = res.register(self.if_expr())
+            if res.error is not None:
+                return res
+            else:
+                return res.success(if_expr)
         return res.failure(InvalidSyntaxError("Expected int or float or an expression", tok.pos_start, tok.pos_end))
+
+    def if_expr(self):
+        res = ParseResult()
+        cases = []
+        else_case = None
+        res.register_advancement()
+        self.advance()
+        condition = res.register(self.logical_expression())
+        if res.error is not None:
+            return res
+        if not self.current_tok.matches(SYM_KEYWORD, 'THEN'):
+            return res.failure(InvalidSyntaxError("Expected 'THEN'",
+                                                  self.current_tok.pos_start, self.current_tok.pos_end))
+        res.register_advancement()
+        self.advance()
+        execution = res.register(self.arithmetic())
+        if res.error is not None:
+            return res
+        cases.append((condition, execution))
+        while self.current_tok.matches(SYM_KEYWORD, 'ELIF'):
+            res.register_advancement()
+            self.advance()
+            condition = res.register(self.logical_expression())
+            if res.error is not None:
+                return res
+            if not self.current_tok.matches(SYM_KEYWORD, 'THEN'):
+                return res.failure(InvalidSyntaxError("Expected 'THEN'",
+                                                      self.current_tok.pos_start, self.current_tok.pos_end))
+            res.register_advancement()
+            self.advance()
+            execution = res.register(self.arithmetic())
+            if res.error is not None:
+                return res
+            cases.append((condition, execution))
+        if self.current_tok.matches(SYM_KEYWORD, 'ELSE'):
+            res.register_advancement()
+            self.advance()
+            execution = res.register(self.arithmetic())
+            if res.error is not None:
+                return res
+            else_case = execution
+        return res.success(IfNode(cases, else_case))
+
     ###################################################
 
 
@@ -764,6 +825,26 @@ class Interpreter:
         else:
             context.symbol_table.set(var_name, value)
             return res.success(value)
+
+    def visit_IfNode(self, node, context):
+        res = RTResult()
+        for condition, execution in node.cases:
+            condition_truth = res.register(self.visit(condition, context))
+            if res.error is not None:
+                return res
+            if condition_truth.value == 1:
+                execution_value = res.register(self.visit(execution, context))
+                if res.error is not None:
+                    return res
+                return res.success(execution_value)
+
+            if node.else_case is not None:
+                else_execution = res.register(self.visit(node.else_case, context))
+                if res.error is not None:
+                    return res
+                return res.success(else_execution)
+        else:
+            return res.success(None)
 
 
 # #####PROCEDURES#####

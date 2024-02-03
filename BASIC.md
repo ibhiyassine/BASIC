@@ -47,7 +47,7 @@ compaaison_op =  "==" | "!=" | "<" | ">" | "<=" | ">=" .
 ````
 basic       = { variable | block }.
 
-variable = "LET" identifier "=" (upper_expression).
+variable = "LET" identifier "=" (logical_expression).
 
 logical_expression = ["NOT"] ( (comp_expression) [ ("AND" | "OR" ) ( logical_expression) ] ).
     
@@ -57,7 +57,7 @@ arithmetic  = term { ( "+" |" -" ) term }.
 
 term        = factor { ( "*" | "/" | "%" | "^" ) factor }.
  
-factor      = [ "+" | "-" ] ( integer | identifier | "(" arithmetic ")" ) .
+factor      = [ "+" | "-" ] ( integer | identifier | "(" arithmetic ")" | if ) .
  
 literal     = integer | string .
  
@@ -65,12 +65,12 @@ statement   = assignment | if | loop | call | return .
 
 assignment  = identifier "=" literal. 
     
-if          = "IF" expression
-              "THEN" statement
-              ["ELSE" statement].
+if          = "IF" logical_expression "THEN" "(" arithmetic | statment ")" 
+               {"ELIF" logical_expression "THEN" "(" arithmetic | statment ")" } 
+               ["ELSE" "(" arithmetic | statement ")" ].
     
-loop        = "REPEAT" statement
-              "UNTIL" expression
+loop        = "REPEAT" statement | arithmetic
+              "UNTIL" logical_expression.
     
 block       = "SUB" variable ":" [variable [ { "," variable } ] ]
                statement
