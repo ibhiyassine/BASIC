@@ -17,7 +17,7 @@ I chose <file_name>.b as the convention to name a 2BASIC file.
 * comments declared with `//` are single-line always and are ignored in the language.
 
 ### Keywords:
-`IF`, `THEN`, `ELSE`, `REPEAT`, `UNTIL`, `GOSUB`, `SUB`, `RETURN`, `PRINT`, `TRUE`, `FALSE`
+`IF`, `THEN`, `ELSE`, `REPEAT`, `UNTIL`, `WITH`, `GOSUB`, `SUB`, `RETURN`, `PRINT`, `TRUE`, `FALSE`
 
 ### Symbols:
 `integer`, `string`, `identifier`, `(`, `)`, `+`, `-`, `*`, `/`, `%`, `^`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=` , `AND`, `OR`, `NOT`
@@ -74,7 +74,8 @@ if          = "IF" logical_expression "THEN" "(" arithmetic | statment ")"
                ["ELSE" "(" arithmetic | statement ")" ].
     
 loop        = "REPEAT" statement | arithmetic
-              "UNTIL" logical_expression.
+              "UNTIL" logical_expression
+              "WITH" arithmetic.
     
 block       = "SUB" variable ":" [variable [ { "," variable } ] ]
                statement

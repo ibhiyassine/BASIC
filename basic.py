@@ -24,7 +24,7 @@ SYM_EOF = 'EOF'
 # #####CONSTANTS#####
 DIGITS = '0123456789'
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-KEYWORDS = ['LET', 'IF', 'THEN', 'ELIF', 'ELSE', 'REPEAT', 'UNTIL', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR',
+KEYWORDS = ['LET', 'IF', 'THEN', 'ELIF', 'ELSE', 'REPEAT', 'UNTIL', 'WITH', 'GOSUB', 'SUB', 'RETURN', 'PRINT', 'AND', 'OR',
             'NOT']
 
 
@@ -353,8 +353,14 @@ class IfNode:
         self.pos_start = cases[0][0].pos_start
         self.pos_end = (self.else_case or self.cases[-1][0]).pos_end
 
-    def __repr__(self):
-        pass
+
+class RepeatNode:
+    def __init__(self, body, condition, step):
+        self.body = body
+        self.condition = condition
+        self.step = step
+        self.pos_start = body[0].pos_start
+        self.pos_end = step.pos_end
 
 
 ###################################################
@@ -497,8 +503,16 @@ class Parser:
             self.advance()
             return res.success(NumberNode(tok))
         elif tok.types == SYM_IDENTIFIER:
+            var_name = tok
             res.register_advancement()
             self.advance()
+            if self.current_tok.types == SYM_EQUAL:
+                res.register_advancement()
+                self.advance()
+                right = res.register(self.arithmetic())
+                if res.error is not None:
+                    return res
+                return res.success(VarAssignNode(var_name, right))
             return res.success(VarAccessNode(tok))
         elif tok.types in (SYM_PLUS, SYM_MINUS):
             op_tok = self.current_tok
@@ -529,6 +543,12 @@ class Parser:
                 return res
             else:
                 return res.success(if_expr)
+        elif tok.matches(SYM_KEYWORD, 'REPEAT'):
+            repeat_expr = res.register(self.repeat_expr())
+            if res.error is not None:
+                return res
+            else:
+                return res.success(repeat_expr)
         return res.failure(InvalidSyntaxError("Expected int or float or an expression", tok.pos_start, tok.pos_end))
 
     def if_expr(self):
@@ -572,6 +592,35 @@ class Parser:
                 return res
             else_case = execution
         return res.success(IfNode(cases, else_case))
+
+    def repeat_expr(self):
+        res = ParseResult()
+        body = []
+        res.register_advancement()
+        self.advance()
+        while not self.current_tok.matches(SYM_KEYWORD, 'UNTIL'):
+            body.append(res.register(self.variable()))
+            if res.error is not None:
+                return res
+            if self.current_tok == SYM_EOF:
+                return res.failure(InvalidSyntaxError("Expected 'UNTIL'",
+                                                      pos_start=self.current_tok.pos_start,
+                                                      pos_end=self.current_tok.pos_end))
+        res.register_advancement()
+        self.advance()
+        condition = res.register(self.logical_expression())
+        if res.error is not None:
+            return res
+        if not self.current_tok.matches(SYM_KEYWORD, 'WITH'):
+            return res.failure(InvalidSyntaxError("Expected 'WITH'",
+                                                  self.current_tok.pos_start,
+                                                  self.current_tok.pos_end))
+        res.register_advancement()
+        self.advance()
+        step = res.register(self.variable())
+        if res.error is not None:
+            return res
+        return res.success(RepeatNode(body, condition, step))
 
     ###################################################
 
@@ -871,6 +920,25 @@ class Interpreter:
                 return res.success(else_execution)
         else:
             return res.success(None)
+
+    def visit_RepeatNode(self, node, context):
+        res = RTResult()
+        execution = None
+        condition = res.register(self.visit(node.condition, context))
+        if res.error is not None:
+            return res
+        while not condition.value:
+            for instruction in node.body:
+                execution = res.register(self.visit(instruction, context))
+                if res.error is not None:
+                    return res
+            res.register(self.visit(node.step, context))
+            if res.error is not None:
+                return res
+            condition = res.register(self.visit(node.condition, context))
+            if res.error is not None:
+                return res
+        return res.success(execution)
 
 
 # #####PROCEDURES#####
